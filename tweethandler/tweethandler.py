@@ -13,9 +13,9 @@ class TweetHandler(logging.Handler):
     A handler class which writes logging records to twitter.com
     """
 
-    def __init__(self, 
-                 akey, asecret, 
-                 ckey, csecret)
+    def __init__(self,
+                 ckey, csecret, 
+                 akey, asecret):
         """
         Use OAuth access key and secret to initialize twitter client.
         """
