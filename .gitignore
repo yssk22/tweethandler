@@ -1,4 +1,5 @@
 build
 dist
 tweethandler.egg-info
+*.pyc
 
