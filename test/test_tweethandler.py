@@ -38,16 +38,16 @@ class TestTweetHandler(unittest.TestCase):
                      dm_threshold = logging.ERROR,
                      dm_to = [],
                      compact_log = True,
-                     ignore_duplication = True,
-                     ignore_overchars = True,
-                     max_retries = 5):
+                     ignore_twerror = True,
+                     max_retries = 5,
+                     async = False):
         self.handler = TweetHandler(ckey, csecret, akey, asecret,
                                     dm_threshold = dm_threshold,
                                     dm_to = dm_to,
                                     compact_log = compact_log,
-                                    ignore_duplication = ignore_duplication,
-                                    ignore_overchars = ignore_overchars,
-                                    max_retries = max_retries)
+                                    ignore_twerror = ignore_twerror,
+                                    max_retries = max_retries,
+                                    async = async)
         self.handler.setLevel(logging.DEBUG)
         self.handler.setFormatter(self.formatter)
         for h in self.logger.handlers:
@@ -56,6 +56,13 @@ class TestTweetHandler(unittest.TestCase):
     
     def tearDown(self):
         pass
+
+    def testEmitAsync(self):
+        self.setUpHandler(async = True)
+        log = self.mklog('foo')
+        self.logger.debug(log)
+        logging.shutdown()
+        self.assertEqual(log, self.getLastLog()[0])
 
     def testEmit(self):
         log = self.mklog('foo')
@@ -87,7 +94,7 @@ class TestTweetHandler(unittest.TestCase):
         self.assertEqual(log1, last_log[1]) # assert not log2
         self.assertEqual(log2, last_log[0])
 
-        self.setUpHandler(ignore_duplication = False)
+        self.setUpHandler(ignore_twerror = False)
         self.assertRaises(TweepError, 
                           lambda: self.logger.debug(log2))
 
@@ -115,7 +122,7 @@ class TestTweetHandler(unittest.TestCase):
         self.assertEqual(log1, last_log[2])
 
         # log3 should not be compacted and execption raised
-        self.setUpHandler(ignore_overchars = False,
+        self.setUpHandler(ignore_twerror = False,
                           compact_log = False)
         self.assertRaises(TweepError, 
                           lambda: self.logger.debug(log3))
