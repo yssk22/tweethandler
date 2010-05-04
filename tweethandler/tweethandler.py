@@ -20,6 +20,8 @@ class TweetHandler(logging.Handler):
 
     def __init__(self,
                  ckey, csecret, akey, asecret,
+                 dm_threshold = logging.ERROR,
+                 dm_to = [],
                  compact_log = True,
                  ignore_duplication = True,
                  ignore_overchars = True,
@@ -31,6 +33,11 @@ class TweetHandler(logging.Handler):
         self._auth = OAuthHandler(ckey, csecret)
         self._auth.set_access_token(akey, asecret)
         self._api = API(self._auth, retry_count = max_retries)
+
+
+        # options
+        self._dm_threshold = dm_threshold
+        self._dm_to = dm_to
         self._compact_log = compact_log
         self._ignore_duplication = ignore_duplication
         self._ignore_overchars = ignore_overchars
@@ -42,7 +49,9 @@ class TweetHandler(logging.Handler):
         try:
             if self._compact_log:
                 self._compact_record(record)
-            self._api.update_status(self.format(record))
+            if record.levelno >= self._dm_threshold:
+                self._send_dm(record)
+            self._send_status(record)
         except TweepError, e:
             if e.reason == _EREASON_OVERCHARS:
                 if not self._ignore_overchars:
@@ -60,3 +69,15 @@ class TweetHandler(logging.Handler):
             return 
         compact_len = len(formatted) - 140
         record.msg = record.msg[:-compact_len]
+
+    # TODO asynchronous logging.
+    def _send_status(self, record):
+        self._api.update_status(self.format(record))
+
+    def _send_dm(self, record):
+        msg = self.format(record)
+        if type(self._dm_to) is list:
+            for d in self._dm_to:
+                self._api.send_direct_message(d, text = msg)
+        else:
+            self._api.send_direct_message(self._dm_to, text = msg)

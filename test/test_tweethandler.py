@@ -17,14 +17,17 @@ ckey = os.environ['TH_CONSUMER_KEY']
 csecret = os.environ['TH_CONSUMER_SECRET']
 akey = os.environ['TH_ACCESS_KEY']
 asecret = os.environ['TH_ACCESS_TOKEN']
+# storage setup
+auth = OAuthHandler(ckey, csecret)
+auth.set_access_token(akey, asecret)
+storage = API(auth)
+me = storage.me()
 
 class TestTweetHandler(unittest.TestCase):
-    def setUp(self):
-        # storage setup
-        auth = OAuthHandler(ckey, csecret)
-        auth.set_access_token(akey, asecret)
-        self.storage = API(auth)
 
+    def setUp(self):
+        self.storage = storage
+        self.me = me
         # logger setup
         self.logger = logging.getLogger()
         self.formatter = logging.Formatter(LOG_FORMAT)
@@ -32,11 +35,15 @@ class TestTweetHandler(unittest.TestCase):
         self.setUpHandler()
 
     def setUpHandler(self, 
+                     dm_threshold = logging.ERROR,
+                     dm_to = [],
                      compact_log = True,
                      ignore_duplication = True,
                      ignore_overchars = True,
                      max_retries = 5):
         self.handler = TweetHandler(ckey, csecret, akey, asecret,
+                                    dm_threshold = dm_threshold,
+                                    dm_to = dm_to,
                                     compact_log = compact_log,
                                     ignore_duplication = ignore_duplication,
                                     ignore_overchars = ignore_overchars,
@@ -54,6 +61,17 @@ class TestTweetHandler(unittest.TestCase):
         log = self.mklog('foo')
         self.logger.debug(log)
         self.assertEqual(log, self.getLastLog()[0])
+
+    def testDMAlert(self):
+        self.setUpHandler(dm_to = ['yssk22'])
+        alert = self.mklog('test DM alert')
+        self.logger.error(alert)
+        self.assertEqual(alert, self.getLastSentDM()[0])
+        
+        self.setUpHandler(dm_to = 'yssk22')
+        alert = self.mklog('test DM alert')
+        self.logger.error(alert)
+        self.assertEqual(alert, self.getLastSentDM()[0])
         
     def testEmitDuplicate(self):
         log1 = self.mklog('foo')
@@ -104,10 +122,13 @@ class TestTweetHandler(unittest.TestCase):
 
 
     def getLastLog(self, count=20):
-        me = self.storage.me()
         tl = self.storage.user_timeline(me.id, count=count)
         return [st.text for st in tl]
     
+    def getLastSentDM(self, count=20):
+        dm = self.storage.sent_direct_messages(count = count)
+        return [st.text for st in dm]
+
     def mklog(self, str):
         ''' this returns "timestamp: str", 
         where 'timestamp' is int(time.time()), 10 chars.
