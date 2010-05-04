@@ -61,7 +61,7 @@ class TestTweetHandler(unittest.TestCase):
         self.setUpHandler(async = True)
         log = self.mklog('foo')
         self.logger.debug(log)
-        logging.shutdown()
+        self.handler.close()
         self.assertEqual(log, self.getLastLog()[0])
 
     def testEmit(self):

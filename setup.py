@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='tweethandler',
-      version='0.2.0',
+      version='0.2.1',
       description='logging handler for twitter',
       license='MIT',
       author='Yohei Sasaki',
